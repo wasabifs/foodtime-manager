@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "Ingredient": {
+      "title": "Ingredient",
+      "description": "A food item in the inventory.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Owner's user ID." },
+        "name": { "type": "string", "description": "Name of the ingredient." },
+        "purchaseDate": { "type": "string", "format": "date", "description": "Date of purchase." },
+        "purchaseLocation": { "type": "string", "description": "Where the item was bought." },
+        "expiryDate": { "type": "string", "format": "date", "description": "Expiration date." },
+        "amount": { "type": "number", "description": "Quantity of the ingredient." },
+        "unit": { "type": "string", "description": "Unit of measurement (e.g., kg, pcs)." },
+        "storageLocation": { "type": "string", "description": "Where the ingredient is stored." },
+        "isConsumed": { "type": "boolean", "description": "Whether the item has been eaten." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "expiryDate", "amount", "unit"]
+    },
+    "UserSettings": {
+      "title": "UserSettings",
+      "description": "User-specific application settings.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Owner's user ID." },
+        "storageLocations": { "type": "array", "items": { "type": "string" }, "description": "List of available storage locations." },
+        "purchaseLocations": { "type": "array", "items": { "type": "string" }, "description": "List of available purchase locations." },
+        "recipeCategories": { "type": "array", "items": { "type": "string" }, "description": "List of available recipe categories." }
+      },
+      "required": ["uid", "storageLocations", "purchaseLocations", "recipeCategories"]
+    },
+    "Recipe": {
+      "title": "Recipe",
+      "description": "A personal cooking recipe.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Owner's user ID." },
+        "title": { "type": "string", "description": "Title of the recipe." },
+        "description": { "type": "string", "description": "Brief description." },
+        "category": { "type": "string", "description": "Category of the recipe." },
+        "images": { "type": "array", "items": { "type": "string" }, "description": "URLs of recipe photos (1-3)." },
+        "ingredients": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" }, "amount": { "type": "string" } } }, "description": "List of required ingredients." },
+        "steps": { "type": "array", "items": { "type": "string" }, "description": "Step-by-step instructions." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "title", "ingredients", "steps"]
+    },
+    "ShoppingItem": {
+      "title": "ShoppingItem",
+      "description": "An item in the shopping list.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Owner's user ID." },
+        "name": { "type": "string", "description": "Name of the item." },
+        "category": { "type": "string", "description": "Category for grouping." },
+        "location": { "type": "string", "description": "Where to buy the item." },
+        "checked": { "type": "boolean", "description": "Whether the item is purchased." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "checked"]
+    },
+    "MealPlan": {
+      "title": "MealPlan",
+      "description": "Planned meals for a specific date.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Owner's user ID." },
+        "date": { "type": "string", "format": "date", "description": "The date of the plan." },
+        "breakfast": { "type": "array", "items": { "type": "object", "properties": { "recipeId": { "type": "string" }, "name": { "type": "string" } } } },
+        "lunch": { "type": "array", "items": { "type": "object", "properties": { "recipeId": { "type": "string" }, "name": { "type": "string" } } } },
+        "dinner": { "type": "array", "items": { "type": "object", "properties": { "recipeId": { "type": "string" }, "name": { "type": "string" } } } },
+        "snack": { "type": "array", "items": { "type": "object", "properties": { "recipeId": { "type": "string" }, "name": { "type": "string" } } } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "date"]
+    }
+  },
+  "firestore": {
+    "/ingredients/{id}": { "schema": "Ingredient", "description": "User's food inventory." },
+    "/recipes/{id}": { "schema": "Recipe", "description": "User's personal recipes." },
+    "/shoppingList/{id}": { "schema": "ShoppingItem", "description": "User's shopping checklist." },
+    "/mealPlans/{id}": { "schema": "MealPlan", "description": "User's daily meal schedule." },
+    "/settings/{id}": { "schema": "UserSettings", "description": "User preferences and settings." }
+  }
+}

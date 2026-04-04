@@ -1,0 +1,126 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: ingredients
+    // Fields: uid, name, purchaseDate, expiryDate, amount, unit, price, storage, category, createdAt
+    //
+    // Collection: recipes
+    // Fields: uid, title, description, images, ingredients, steps, createdAt
+    //
+    // Collection: shoppingList
+    // Fields: uid, name, category, checked, createdAt
+    //
+    // Collection: mealPlans
+    // Fields: uid, date, breakfast, lunch, dinner, createdAt
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidString(field, min, max) {
+      return request.resource.data[field] is string && 
+             request.resource.data[field].size() >= min && 
+             request.resource.data[field].size() <= max;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "wasabifs@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidIngredient(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.expiryDate is string &&
+             data.amount is number &&
+             data.unit is string && data.unit.size() < 20;
+    }
+
+    function isValidRecipe(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() < 100 &&
+             data.ingredients is list &&
+             data.steps is list;
+    }
+
+    function isValidShoppingItem(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.checked is bool;
+    }
+
+    function isValidMealPlan(data) {
+      return data.date is string && data.date.size() == 10;
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /ingredients/{id} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && uidUnchanged() && isValidIngredient(request.resource.data);
+      allow update: if isDocOwner() && uidNotModified() && isValidIngredient(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /recipes/{id} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && uidUnchanged() && isValidRecipe(request.resource.data);
+      allow update: if isDocOwner() && uidNotModified() && isValidRecipe(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /shoppingList/{id} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && uidUnchanged() && isValidShoppingItem(request.resource.data);
+      allow update: if isDocOwner() && uidNotModified() && isValidShoppingItem(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /mealPlans/{id} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && uidUnchanged() && isValidMealPlan(request.resource.data);
+      allow update: if isDocOwner() && uidNotModified() && isValidMealPlan(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /settings/{id} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && uidUnchanged();
+      allow update: if isDocOwner() && uidNotModified();
+      allow delete: if isDocOwner();
+    }
+  }
+}

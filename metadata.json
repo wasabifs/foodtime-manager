@@ -1,0 +1,7 @@
+{
+  "name": "食刻管理 (FoodTime Manager)",
+  "description": "全方位的食材管理、採購清單、私房食譜與菜色安排工具，助您輕鬆管理廚房生活。",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
