@@ -173,7 +173,7 @@ function RecipeForm({ uid, recipe, categories, onClose }: {
           )}>
             {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
             {isUploading ? `上傳中 ${progress}%` : '上傳照片'}
-            <input type="file" className="hidden" accept="image/*" capture="environment" onChange={handleFileUpload} disabled={isUploading} />
+            <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} disabled={isUploading} />
           </label>
           <div className="flex-1">
             <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="或輸入網址..." className="w-full p-3 bg-gray-50 rounded-xl border-none text-sm" />
