@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>食刻管理｜使用指引</title>
+<style>
+  :root{
+    --cream:#FBF7F0;
+    --paper:#FFFFFF;
+    --ink:#262220;
+    --ink-soft:#8b8480;
+    --carrot:#EA580C;
+    --carrot-soft:#FFEDD9;
+    --line:#EFE7DA;
+    --shop:#0EA5E9;
+    --shop-soft:#E0F4FD;
+    --pantry:#16A34A;
+    --pantry-soft:#E3F6E8;
+    --recipe:#D946EF;
+    --recipe-soft:#FBE7FB;
+    --menu:#F59E0B;
+    --menu-soft:#FFF3DC;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif;
+    line-height:1.6;
+  }
+  .display{font-family:Georgia,"Noto Serif TC",serif;}
+
+  header.hero{
+    padding:64px 24px 48px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  header.hero::before{
+    content:"";
+    position:absolute;
+    top:-120px; right:-100px;
+    width:340px; height:340px;
+    background:radial-gradient(circle, var(--carrot-soft) 0%, transparent 70%);
+    z-index:0;
+  }
+  header.hero .eyebrow{
+    position:relative; z-index:1;
+    display:inline-block;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--carrot);
+    font-weight:700;
+    background:var(--carrot-soft);
+    padding:6px 14px;
+    border-radius:999px;
+    margin-bottom:18px;
+  }
+  header.hero h1{
+    position:relative; z-index:1;
+    font-size:clamp(32px,6vw,48px);
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  header.hero p{
+    position:relative; z-index:1;
+    color:var(--ink-soft);
+    font-size:15px;
+    max-width:480px;
+    margin:0 auto;
+  }
+
+  nav.toc{
+    max-width:880px;
+    margin:0 auto 56px;
+    padding:0 24px;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+  }
+  nav.toc a{
+    text-decoration:none;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    padding:18px 8px;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:18px;
+    color:var(--ink);
+    font-size:13px;
+    font-weight:700;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  nav.toc a:hover{transform:translateY(-3px); box-shadow:0 10px 24px -12px rgba(0,0,0,.18);}
+  nav.toc .dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;}
+
+  main{
+    max-width:880px;
+    margin:0 auto;
+    padding:0 24px 80px;
+  }
+
+  section.page{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:28px;
+    padding:40px clamp(20px,5vw,48px);
+    margin-bottom:32px;
+    scroll-margin-top:24px;
+  }
+  section.page .tag{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    padding:6px 14px;
+    border-radius:999px;
+    margin-bottom:18px;
+  }
+  section.page h2{
+    font-size:26px;
+    margin:0 0 8px;
+  }
+  section.page .lede{
+    color:var(--ink-soft);
+    font-size:14.5px;
+    margin:0 0 28px;
+    max-width:560px;
+  }
+
+  .steps{list-style:none;margin:0;padding:0;counter-reset:step;}
+  .steps li{
+    position:relative;
+    padding:0 0 22px 40px;
+    counter-increment:step;
+    border-left:2px solid var(--line);
+    margin-left:13px;
+  }
+  .steps li:last-child{border-left:2px solid transparent; padding-bottom:0;}
+  .steps li::before{
+    content:counter(step);
+    position:absolute;
+    left:-13px; top:0;
+    width:26px;height:26px;
+    border-radius:50%;
+    background:var(--accent-soft);
+    color:var(--accent);
+    font-size:12px;
+    font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .steps li strong{display:block;margin-bottom:4px;font-size:15px;}
+  .steps li span{color:var(--ink-soft);font-size:13.5px;}
+
+  .tip{
+    margin-top:24px;
+    padding:16px 18px;
+    border-radius:16px;
+    background:var(--accent-soft);
+    font-size:13.5px;
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+  }
+  .tip b{color:var(--accent);}
+
+  .grid2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-top:6px;
+  }
+  .chip{
+    background:var(--cream);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:13.5px;
+  }
+  .chip b{display:block;font-size:13px;margin-bottom:3px;}
+
+  #shopping{--accent:var(--shop); --accent-soft:var(--shop-soft);}
+  #pantry{--accent:var(--pantry); --accent-soft:var(--pantry-soft);}
+  #recipes{--accent:var(--recipe); --accent-soft:var(--recipe-soft);}
+  #menu{--accent:var(--menu); --accent-soft:var(--menu-soft);}
+  section.page .tag{background:var(--accent-soft);color:var(--accent);}
+
+  .flow{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    margin:24px 0 4px;
+    padding:16px;
+    border-radius:16px;
+    background:var(--cream);
+    font-size:13px;
+  }
+  .flow .node{
+    background:var(--paper);
+    border:1px solid var(--line);
+    padding:7px 12px;
+    border-radius:999px;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  .flow .arrow{color:var(--ink-soft);}
+
+  footer{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:12.5px;
+    padding:30px 24px 50px;
+  }
+
+  @media (max-width:640px){
+    nav.toc{grid-template-columns:repeat(2,1fr);}
+    section.page{padding:32px 20px;border-radius:22px;}
+    .grid2{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <span class="eyebrow">食刻管理 · 使用指引</span>
+  <h1 class="display">把廚房的節奏，<br>交給食刻管理</h1>
+  <p>從採購、食材庫存、食譜到每日菜單，四個頁面互相串連，幫你少買重複的東西、少浪費快過期的食材。</p>
+</header>
+
+<nav class="toc">
+  <a href="#shopping"><span class="dot" style="background:var(--shop-soft);color:var(--shop)">🛒</span>採購清單</a>
+  <a href="#pantry"><span class="dot" style="background:var(--pantry-soft);color:var(--pantry)">🥦</span>食材庫存</a>
+  <a href="#recipes"><span class="dot" style="background:var(--recipe-soft);color:var(--recipe)">📖</span>私房食譜</a>
+  <a href="#menu"><span class="dot" style="background:var(--menu-soft);color:var(--menu)">🗓️</span>每日菜單</a>
+</nav>
+
+<main>
+
+  <section class="page" id="shopping">
+    <span class="tag">PAGE 1 · 採購清單</span>
+    <h2>還沒買的，先列在這裡</h2>
+    <p class="lede">用來記錄「打算要買」的東西。買完之後勾掉，系統會問你要不要直接放進食材庫存，不用再手動新增一次。</p>
+
+    <ol class="steps">
+      <li><strong>新增採購項目</strong><span>在最上方輸入框打上品名，選擇採購地點（例如超市、市場、便利商店），按右側按鈕送出。</span></li>
+      <li><strong>依地點分區顯示</strong><span>清單會依「採購地點」自動分組，方便你到某個地方時，只看那裡要買什麼。</span></li>
+      <li><strong>勾選＝買到了</strong><span>點項目左側圓圈勾選，系統會問「加入食材庫？」。選「加入」會自動轉成食材庫存的一筆新紀錄並從清單移除；選「不用」則只是單純把這個項目刪除。</span></li>
+      <li><strong>編輯或刪除</strong><span>長按項目會跳出「編輯」「刪除」「取消」按鈕，可以修改品名、採購地點，或直接刪掉打錯的項目。</span></li>
+    </ol>
+
+    <div class="tip"><b>小提醒：</b>菜單頁的「自動採購分析」也會把缺的食材送進這裡，採購清單其實是全 App 食材補給的匯入口。</div>
+  </section>
+
+  <section class="page" id="pantry">
+    <span class="tag">PAGE 2 · 食材庫存</span>
+    <h2>家裡現在到底有什麼</h2>
+    <p class="lede">記錄已經買回家、放在冰箱或櫥憃裡的食材，並用顏色提醒哪些快過期，避免囤了又忘記。</p>
+
+    <ol class="steps">
+      <li><strong>新增食材</strong><span>按右上角「+」，填入食材名稱、數量、單位、分類、採購地點、儲存區域，以及購買日／到期日。購買日預設帶入今天，到期日依包裝或經驗自行填寫。</span></li>
+      <li><strong>依儲存區域分區瀏覽</strong><span>食材卡片會依儲存區域（例如冷藏、冷凍、常溫）分組顯示，也可用上方篩選依「地點」「分類」快速縮小範圍。</span></li>
+      <li><strong>看顏色就知道要不要先吃</strong><span>卡片底色代表新鮮度：白色（還很新鮮）→ 黃色（一週內到期）→ 橘色（3 天內到期）→ 紅色（今天到期）→ 灰色（已過期）。</span></li>
+      <li><strong>吃完了打勾</strong><span>點卡片右上角的圓圈勾選即代表「食用完畢」，系統會問要不要把它加回採購清單，方便下次補貨同一樣東西。</span></li>
+      <li><strong>編輯或刪除</strong><span>點卡片本身可開啟編輯視窗，調整任何欄位；視窗下方也能直接刪除整筆紀錄，或一鍵「加入採購清單」（會同時把這筆食材從庫存移除，等於標記成「要重買」）。</span></li>
+    </ol>
+
+    <div class="tip"><b>小提醒：</b>這裡的食材庫存，就是菜單頁「自動採購分析」比對庫存夠不夠的依據，也是私房食譜頁 AI 推薦食譜的食材來源。</div>
+  </section>
+
+  <section class="page" id="recipes">
+    <span class="tag">PAGE 3 · 私房食譜</span>
+    <h2>存下喜歡的做法，或讓 AI 幫你想</h2>
+    <p class="lede">把常做的料理寫成食譜存起來，方便排進每日菜單；也可以請 AI 根據目前快過期的食材推薦一道菜。</p>
+
+    <ol class="steps">
+      <li><strong>手動新增食譜</strong><span>按「+」填入食譜名稱、分類、照片（可上傳或貼網址）、簡介，再逐筆加入「食材清單」（品名＋份量）與「步驟說明」。</span></li>
+      <li><strong>瀏覽與查看</strong><span>食譜以卡片形式呈現，點卡片可看完整內容：簡介、所需食材、步驟，下方有「編輯」「刪除」按鈕。</span></li>
+      <li><strong>AI 推薦食譜</strong><span>按上方「AI 推薦」按鈕，系統會抓出你食材庫存中最快過期的幾樣，請 AI 設計一道用得到這些食材的簡單食譜，並顯示名稱、簡介、食材與步驟。</span></li>
+      <li><strong>把 AI 結果存成自己的食譜</strong><span>在 AI 推薦結果視窗按「儲存」，就會把這份建議直接存進私房食譜，之後可在菜單頁挑選使用。</span></li>
+    </ol>
+
+    <div class="tip"><b>小提醒：</b>AI 推薦食譜需要食材庫存裡至少有東西才能使用；如果食材庫存是空的，按鈕會無法點擊。</div>
+  </section>
+
+  <section class="page" id="menu">
+    <span class="tag">PAGE 4 · 每日菜單</span>
+    <h2>把食譜排進一週的早午晚餐</h2>
+    <p class="lede">用週曆視圖規劃每天的早餐、午餐、晚餐、點心要吃什麼，並能一鍵比對食材庫存、把缺的東西丟進採購清單。</p>
+
+    <ol class="steps">
+      <li><strong>切換週次與日期</strong><span>用左右箭頭切換上一週／下一週，點上方日期格選擇要安排的那一天。</span></li>
+      <li><strong>幫每個餐次加菜</strong><span>「早餐」「午餐」「晚餐」「點心」各自有獨立區塊，按「+」從私房食譜中挑選要排入的菜色，可重複挑選多道。</span></li>
+      <li><strong>查看已排的菜</strong><span>點已加入的菜色名稱可開啟食譜詳情；按右側 × 可從當天菜單移除。</span></li>
+      <li><strong>自動採購分析</strong><span>按上方「同步採購清單」，系統會統計這份週菜單所有用到的食譜需要哪些食材，並逐一比對食材庫存，標示「已有庫存／需要採購」。</span></li>
+      <li><strong>選擇要採購的項目</strong><span>在分析結果中取消勾選你不需要補買的食材，按「確認」，剩下勾選的項目就會加進採購清單（重複品名不會重複新增）。</span></li>
+    </ol>
+
+    <div class="flow">
+      <span class="node">排好一週菜單</span><span class="arrow">→</span>
+      <span class="node">同步採購清單</span><span class="arrow">→</span>
+      <span class="node">比對食材庫存</span><span class="arrow">→</span>
+      <span class="node">缺的自動加入採購清單</span>
+    </div>
+
+    <div class="tip"><b>小提醒：</b>「同步採購清單」只統計排在週菜單中、且來自私房食譜的菜色，沒有指定食譜的隨手紀錄不會被納入分析。</div>
+  </section>
+
+  <section class="page" id="cycle" style="border-style:dashed;">
+    <span class="tag" style="background:var(--carrot-soft);color:var(--carrot)">四頁怎麼串在一起</span>
+    <h2 class="display" style="font-size:22px;">一個循環：買 → 存 → 煮 → 排</h2>
+    <div class="grid2" style="margin-top:18px;">
+      <div class="chip"><b>🛒 採購清單</b>勾選買到的東西，自動轉進食材庫存。</div>
+      <div class="chip"><b>🥦 食材庫存</b>過期提醒 + 提供 AI 食譜推薦的食材來源。</div>
+      <div class="chip"><b>📖 私房食譜</b>存好的菜色，可手動排進每日菜單。</div>
+      <div class="chip"><b>🗓️ 每日菜單</b>比對庫存缺什麼，自動補回採購清單，循環重新開始。</div>
+    </div>
+  </section>
+
+</main>
+
+<footer>食刻管理 · FoodTime Manager — 使用指引</footer>
+
+</body>
+</html>
