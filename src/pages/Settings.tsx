@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Store, Tag, MapPin, BookOpen, LogOut, ChevronRight } from 'lucide-react';
+import { Store, Tag, MapPin, BookOpen, LogOut, ChevronRight, HelpCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { logOut } from '../firebase';
 import { useSettingsContext } from '../contexts/SettingsContext';
@@ -48,6 +48,7 @@ export default function Settings({ uid }: { uid: string }) {
           <SettingItem icon={Tag} label="食材分類管理" onClick={() => setManageType('ingredient')} />
           <SettingItem icon={MapPin} label="儲存地點管理" onClick={() => setManageType('storage')} />
           <SettingItem icon={BookOpen} label="食譜分類管理" onClick={() => setManageType('recipe')} />
+          <SettingItem icon={HelpCircle} label="使用說明" onClick={() => window.open('/usage-guide.html', '_blank')} />
         </div>
 
         <div className="pt-4">
