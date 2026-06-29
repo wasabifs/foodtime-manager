@@ -274,14 +274,14 @@ function IngredientForm({ uid, ingredient, storageLocations, ingredientCategorie
             </select>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1 min-w-0">
             <label className="text-[10px] uppercase font-bold text-gray-400 block">購買日</label>
-            <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} className="w-full min-w-0 p-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500 [&::-webkit-date-and-time-value]:text-left" />
+            <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} className="w-full min-w-0 py-3 px-2 bg-gray-50 rounded-xl border-none text-xs sm:text-sm focus:ring-1 focus:ring-orange-500 [&::-webkit-date-and-time-value]:text-left [&::-webkit-calendar-picker-indicator]:hidden" />
           </div>
           <div className="space-y-1 min-w-0">
             <label className="text-[10px] uppercase font-bold text-gray-400 block">到期日</label>
-            <input type="date" value={expiry} onChange={e => setExpiry(e.target.value)} className="w-full min-w-0 p-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500 [&::-webkit-date-and-time-value]:text-left" />
+            <input type="date" value={expiry} onChange={e => setExpiry(e.target.value)} className="w-full min-w-0 py-3 px-2 bg-gray-50 rounded-xl border-none text-xs sm:text-sm focus:ring-1 focus:ring-orange-500 [&::-webkit-date-and-time-value]:text-left [&::-webkit-calendar-picker-indicator]:hidden" />
           </div>
         </div>
         <div className="flex flex-col gap-3 pt-4">
