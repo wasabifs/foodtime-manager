@@ -1,6 +1,6 @@
 // 食刻管理 Service Worker
 // 每次部署新版時更新此版本號，瀏覽器會自動偵測並觸發更新
-const CACHE_VERSION = 'foodtime-v2.1';
+const CACHE_VERSION = 'foodtime-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
