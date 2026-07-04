@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
-import { BookOpen, Plus, Sparkles, X, Camera, AlertCircle, Loader2 } from 'lucide-react';
+import { BookOpen, Plus, Sparkles, X, Camera, AlertCircle, Loader2, Search, Tag, CheckCircle2, Circle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useSettingsContext } from '../contexts/SettingsContext';
@@ -34,7 +34,16 @@ function RecipeDetail({ recipe, onClose, onDelete, onEdit }: {
         )}
 
         <h2 className="text-2xl font-bold text-gray-900 mb-2">{recipe.title}</h2>
-        {recipe.description && <p className="text-sm text-gray-500 mb-6 leading-relaxed">{recipe.description}</p>}
+        {recipe.description && <p className="text-sm text-gray-500 mb-4 leading-relaxed">{recipe.description}</p>}
+        {recipe.tags && recipe.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-6">
+            {recipe.tags.map(tag => (
+              <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-50 text-orange-600 rounded-full text-[10px] font-bold border border-orange-100">
+                <Tag size={9} />{tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="space-y-6">
           <div>
@@ -95,6 +104,8 @@ function RecipeForm({ uid, recipe, categories, onClose }: {
   const [desc, setDesc] = useState(recipe?.description || '');
   const [category, setCategory] = useState(recipe?.category || categories[0] || '');
   const [imageUrl, setImageUrl] = useState(recipe?.images?.[0] || '');
+  const [tags, setTags] = useState<string[]>(recipe?.tags || []);
+  const [tagInput, setTagInput] = useState('');
   const [ingredients, setIngredients] = useState(recipe?.ingredients || [{ name: '', amount: '' }]);
   const [steps, setSteps] = useState(recipe?.steps || ['']);
   const [saving, setSaving] = useState(false);
@@ -117,7 +128,7 @@ function RecipeForm({ uid, recipe, categories, onClose }: {
     e.preventDefault();
     setSaving(true);
     const data = {
-      uid, title, description: desc, category,
+      uid, title, description: desc, category, tags,
       images: imageUrl ? [imageUrl] : [],
       ingredients: ingredients.filter(i => i.name),
       steps: steps.filter(s => s.trim()),
@@ -134,6 +145,19 @@ function RecipeForm({ uid, recipe, categories, onClose }: {
       console.error('Failed to save recipe:', err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const addTag = () => {
+    const t = tagInput.trim().replace(/[,，]/g, '');
+    if (t && !tags.includes(t)) setTags([...tags, t]);
+    setTagInput('');
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',' || e.key === '，') {
+      e.preventDefault();
+      addTag();
     }
   };
 
@@ -160,6 +184,24 @@ function RecipeForm({ uid, recipe, categories, onClose }: {
             {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             <option value="未分類">未分類</option>
           </select>
+        </div>
+        <div className="col-span-2">
+          <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">標籤</label>
+          <div className="flex gap-2">
+            <input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagKeyDown} onBlur={addTag}
+              placeholder="輸入標籤後按 Enter 或逗號..." className="flex-1 p-3 bg-gray-50 rounded-xl border-none text-sm focus:ring-1 focus:ring-orange-500" />
+            <button type="button" onClick={addTag} className="px-4 bg-orange-50 text-orange-600 rounded-xl text-xs font-bold shrink-0">加入</button>
+          </div>
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {tags.map(tag => (
+                <span key={tag} className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-bold border border-orange-100">
+                  <Tag size={9} />{tag}
+                  <button type="button" onClick={() => setTags(tags.filter(t => t !== tag))} className="text-orange-400 hover:text-orange-700"><X size={10} /></button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -270,6 +312,9 @@ export default function Recipes({ uid }: { uid: string }) {
   const [aiResult, setAiResult] = useState<Recipe | null>(null);
   const [showAiModal, setShowAiModal] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showPicker, setShowPicker] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const qR = query(collection(db, 'recipes'), where('uid', '==', uid), orderBy('createdAt', 'desc'));
@@ -293,23 +338,38 @@ export default function Recipes({ uid }: { uid: string }) {
     } catch (err) { console.error('Failed to delete recipe:', err); }
   };
 
+  // Sorted expiry-first list for the picker (no expiry goes last)
+  const sortedByExpiry = [...ingredients].sort((a, b) => {
+    if (!a.expiryDate) return 1;
+    if (!b.expiryDate) return -1;
+    return parseISO(a.expiryDate).getTime() - parseISO(b.expiryDate).getTime();
+  });
+
+  const openPicker = () => {
+    setSelectedIds(new Set());
+    setShowPicker(true);
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const generateAiRecipe = async () => {
-    if (ingredients.length === 0) return;
+    const selected = sortedByExpiry.filter(i => i.id && selectedIds.has(i.id));
+    if (selected.length === 0) return;
+    setShowPicker(false);
     setAiLoading(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-      const expiring = ingredients
-        .sort((a, b) => {
-          if (!a.expiryDate) return 1;
-          if (!b.expiryDate) return -1;
-          return parseISO(a.expiryDate).getTime() - parseISO(b.expiryDate).getTime();
-        })
-        .slice(0, 10)
-        .map(i => i.name).join(', ');
+      const names = selected.map(i => `${i.name}（${i.amount}${i.unit}）`).join('、');
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `我現有的食材有：${expiring}。請根據這些食材推薦一個簡單的食譜。`,
+        contents: `我想使用冰箱裡的這些食材：${names}。請根據這些食材推薦一個簡單的食譜，盡量把這些食材都用上，可以搭配常見的基本調味料。`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -348,7 +408,17 @@ export default function Recipes({ uid }: { uid: string }) {
     }
   };
 
-  const filteredRecipes = activeCategory ? recipes.filter(r => r.category === activeCategory) : recipes;
+  const keyword = searchTerm.trim().toLowerCase();
+  const filteredRecipes = recipes.filter(r => {
+    if (activeCategory && r.category !== activeCategory) return false;
+    if (!keyword) return true;
+    return (
+      r.title.toLowerCase().includes(keyword) ||
+      (r.description || '').toLowerCase().includes(keyword) ||
+      (r.tags || []).some(t => t.toLowerCase().includes(keyword)) ||
+      r.ingredients.some(i => i.name.toLowerCase().includes(keyword))
+    );
+  });
 
   if (loading) return <LoadingSkeleton />;
 
@@ -359,7 +429,7 @@ export default function Recipes({ uid }: { uid: string }) {
       <div className="bg-gray-50 px-4 pt-2 pb-2 border-b border-gray-100 shrink-0 z-20">
         <SectionHeader title="私房食譜" onAdd={() => setShowAdd(true)}
           extraAction={
-            <button onClick={generateAiRecipe} disabled={aiLoading || ingredients.length === 0}
+            <button onClick={openPicker} disabled={aiLoading || ingredients.length === 0}
               className="px-3 py-1.5 bg-orange-100 text-orange-600 rounded-full text-[10px] font-bold flex items-center gap-1.5 shadow-sm hover:bg-orange-200 transition-colors disabled:opacity-50"
             >
               {aiLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
@@ -367,10 +437,19 @@ export default function Recipes({ uid }: { uid: string }) {
             </button>
           }
         />
+        <div className="mt-2 relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
+          <input type="search" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+            placeholder="搜尋食譜名稱、標籤、食材..."
+            className="w-full py-2 pl-9 pr-8 bg-white rounded-2xl shadow-sm border border-gray-100 text-xs outline-none focus:ring-1 focus:ring-orange-500 [&::-webkit-search-cancel-button]:hidden" />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500"><X size={14} /></button>
+          )}
+        </div>
         <FilterPills items={recipeCategories} active={activeCategory} onSelect={setActiveCategory} />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-32">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-8">
         <div className="px-1 grid grid-cols-3 gap-1.5">
           {filteredRecipes.map(recipe => (
             <button key={recipe.id} onClick={() => setViewingRecipe(recipe)}
@@ -389,9 +468,62 @@ export default function Recipes({ uid }: { uid: string }) {
           ))}
         </div>
         {filteredRecipes.length === 0 && (
-          <div className="text-center py-16 text-gray-300 text-sm">還沒有食譜，點右上角新增吧</div>
+          <div className="text-center py-16 text-gray-300 text-sm">
+            {keyword || activeCategory ? '找不到符合的食譜' : '還沒有食譜，點右上角新增吧'}
+          </div>
         )}
       </div>
+
+      {/* Ingredient Picker for AI */}
+      <AnimatePresence>
+        {showPicker && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+            >
+              <div className="p-6 pb-4 shrink-0">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">選擇要使用的食材</h2>
+                    <p className="text-xs text-gray-400 mt-1">依到期日排序，快過期的在前面</p>
+                  </div>
+                  <button onClick={() => setShowPicker(false)} className="text-gray-400 hover:text-gray-600"><X size={22} /></button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto px-6 space-y-1.5">
+                {sortedByExpiry.map(ing => {
+                  const checked = !!ing.id && selectedIds.has(ing.id);
+                  return (
+                    <button key={ing.id} type="button" onClick={() => ing.id && toggleSelected(ing.id)}
+                      className={cn(
+                        "w-full flex items-center gap-3 py-2.5 px-3 rounded-xl border transition-colors text-left",
+                        checked ? "bg-orange-50 border-orange-200" : "bg-gray-50 border-gray-100"
+                      )}
+                    >
+                      {checked ? <CheckCircle2 className="text-orange-600 shrink-0" size={18} /> : <Circle className="text-gray-300 shrink-0" size={18} />}
+                      <span className="text-sm font-bold text-gray-700 truncate flex-1">{ing.name}</span>
+                      <span className="text-[10px] text-gray-400 whitespace-nowrap shrink-0">{ing.amount}{ing.unit}</span>
+                      {ing.expiryDate && (
+                        <span className="text-[9px] font-mono bg-white border border-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                          {ing.expiryDate.split('-').slice(1).join('/')}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="p-5 border-t border-gray-100 shrink-0">
+                <button onClick={generateAiRecipe} disabled={selectedIds.size === 0}
+                  className="w-full py-3.5 bg-orange-600 text-white rounded-full text-sm font-bold shadow-lg active:scale-95 transition-transform disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  <Sparkles size={16} />
+                  {selectedIds.size === 0 ? '請先勾選食材' : `用這 ${selectedIds.size} 樣食材生成菜色`}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* AI Result Modal */}
       <AnimatePresence>
