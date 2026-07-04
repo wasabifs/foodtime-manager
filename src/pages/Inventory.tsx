@@ -106,7 +106,7 @@ export default function Inventory({ uid, inventoryAction, setInventoryAction }: 
         <FilterPills items={ingredientCategories} active={activeCategory} onSelect={setActiveCategory} allLabel="全部分類" />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 pb-32">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 pb-8">
         {sortedLocations.filter(loc => activeLocation === null || activeLocation === loc).map((location) => {
           const locIngs = groupedIngredients[location]?.filter(ing => activeCategory === null || ing.category === activeCategory);
           if (!locIngs || locIngs.length === 0) return null;
@@ -120,8 +120,9 @@ export default function Inventory({ uid, inventoryAction, setInventoryAction }: 
                       className={cn("w-full p-2 rounded-lg shadow-sm flex flex-col relative group min-h-[45px] transition-all active:scale-95 text-left", getStatusColor(ing.expiryDate))}
                     >
                       <h3 className="text-[11px] font-bold mb-0.5 truncate leading-tight text-gray-900 pr-4">{ing.name}</h3>
-                      <div className="mt-auto flex items-end justify-between">
+                      <div className="mt-auto flex items-end justify-between gap-1">
                         <span className="text-[8px] font-mono text-gray-600">{ing.expiryDate?.split('-').slice(1).join('/')}</span>
+                        <span className="text-[9px] font-bold text-orange-700 bg-white/60 px-1 rounded whitespace-nowrap shrink-0">{ing.amount}{ing.unit}</span>
                       </div>
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); toggleConsumed(ing); }}
