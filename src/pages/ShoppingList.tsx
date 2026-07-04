@@ -136,13 +136,13 @@ export default function ShoppingList({ uid, setInventoryAction, setActiveTab }: 
         <FilterPills items={sortedLocations} active={activeLocation} onSelect={setActiveLocation} />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-32">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-8">
         {sortedLocations.filter(loc => activeLocation === null || activeLocation === loc).map((location) => {
           const locItems = groupedItems[location];
           if (!locItems || locItems.length === 0) return null;
           return (
             <div key={location} className="space-y-1">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 ml-2 mb-1">{location}</h3>
+              <h3 className="text-[11px] font-bold uppercase tracking-widest text-orange-600 ml-2 mb-1">{location}</h3>
               <div className="grid grid-cols-3 gap-2">
                 {locItems.sort((a, b) => Number(a.checked) - Number(b.checked)).map(item => (
                   <div key={item.id}
