@@ -239,7 +239,7 @@ export default function MealPlanner({ uid }: { uid: string }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-32">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-8">
         {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map((meal) => (
           <div key={meal} className="bg-white p-3 rounded-xl shadow-sm border border-orange-50">
             <div className="flex justify-between items-center mb-2">
