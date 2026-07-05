@@ -365,47 +365,20 @@ export default function Recipes({ uid }: { uid: string }) {
     setAiLoading(true);
     setAiError(null);
     try {
-      const apiKey = process.env.ANTHROPIC_API_KEY;
-      if (!apiKey) {
-        setAiError('尚未設定 Anthropic API Key。請到 Vercel 專案的 Settings → Environment Variables 加入 ANTHROPIC_API_KEY 後重新部署。');
-        return;
-      }
-      const names = selected.map(i => `${i.name}（${i.amount}${i.unit}）`).join('、');
-
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/generate-recipe', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1500,
-          messages: [{
-            role: 'user',
-            content: `我想使用冰箱裡的這些食材：${names}。請根據這些食材推薦一個簡單的家常食譜，盡量把這些食材都用上，可以搭配常見的基本調味料。使用繁體中文。
-
-請只回傳 JSON，不要包含任何其他文字或 Markdown 標記，格式如下：
-{"title": "食譜名稱", "description": "食譜簡介", "ingredients": [{"name": "食材名", "amount": "份量"}], "steps": ["步驟一", "步驟二"]}`,
-          }],
+          ingredients: selected.map(i => ({ name: i.name, amount: i.amount, unit: i.unit })),
         }),
       });
 
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => null);
-        throw new Error(errBody?.error?.message || `API 回應錯誤（${res.status}）`);
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.recipe) {
+        throw new Error(data?.error || `伺服器回應錯誤（${res.status}）`);
       }
 
-      const data = await res.json();
-      const text = (data.content || [])
-        .filter((b: { type: string }) => b.type === 'text')
-        .map((b: { text: string }) => b.text)
-        .join('');
-      const clean = text.replace(/```json|```/g, '').trim();
-      const result = JSON.parse(clean);
-      setAiResult(result);
+      setAiResult(data.recipe);
       setShowAiModal(true);
     } catch (error) {
       console.error('AI recipe generation failed:', error);
