@@ -178,7 +178,7 @@ export default function App() {
         </AnimatePresence>
 
         {/* Navigation */}
-        <nav className="shrink-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 flex justify-around z-20 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+        <nav className="shrink-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 flex justify-around z-20 pt-2 pb-[max(calc(env(safe-area-inset-bottom)-12px),4px)]">
           <TabButton active={activeTab === 'shopping'} onClick={() => setActiveTab('shopping')} icon={ShoppingBag} label="採購" />
           <TabButton active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} icon={Carrot} label="食材" />
           <TabButton active={activeTab === 'recipes'} onClick={() => setActiveTab('recipes')} icon={CookingPot} label="食譜" />
