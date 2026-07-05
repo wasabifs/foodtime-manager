@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { CheckCircle2, ShoppingBag, Plus } from 'lucide-react';
+import { CheckCircle2, ShoppingBag, Plus, Minus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useSettingsContext } from '../contexts/SettingsContext';
@@ -122,7 +122,7 @@ export default function Inventory({ uid, inventoryAction, setInventoryAction }: 
                       <h3 className="text-[11px] font-bold mb-0.5 truncate leading-tight text-gray-900 pr-4">{ing.name}</h3>
                       <div className="mt-auto flex items-end justify-between gap-1">
                         <span className="text-[8px] font-mono text-gray-600">{ing.expiryDate?.split('-').slice(1).join('/')}</span>
-                        <span className="text-[9px] font-bold text-orange-700 bg-white/60 px-1 rounded whitespace-nowrap shrink-0">{ing.amount}{ing.unit}</span>
+                        <span className="text-[9px] font-bold text-orange-700 bg-white/60 px-1 rounded whitespace-nowrap shrink-0">x{ing.amount}</span>
                       </div>
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); toggleConsumed(ing); }}
@@ -247,7 +247,17 @@ function IngredientForm({ uid, ingredient, storageLocations, ingredientCategorie
           </div>
           <div>
             <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">數量</label>
-            <input required type="number" value={amount} onChange={e => setAmount(Number(e.target.value))} className="w-full p-3 bg-gray-50 rounded-xl border-none text-sm focus:ring-1 focus:ring-orange-500" />
+            <div className="flex items-center bg-gray-50 rounded-xl overflow-hidden h-[46px]">
+              <button type="button" onClick={() => setAmount(a => Math.max(1, Number(a) - 1))}
+                className="w-9 h-full flex items-center justify-center text-gray-400 active:bg-gray-200 active:text-orange-600 shrink-0">
+                <Minus size={14} />
+              </button>
+              <span className="flex-1 text-center text-sm font-bold text-gray-800 min-w-0">{amount}</span>
+              <button type="button" onClick={() => setAmount(a => Number(a) + 1)}
+                className="w-9 h-full flex items-center justify-center text-gray-400 active:bg-gray-200 active:text-orange-600 shrink-0">
+                <Plus size={14} />
+              </button>
+            </div>
           </div>
           <div>
             <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">單位</label>
