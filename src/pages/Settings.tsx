@@ -62,7 +62,7 @@ export default function Settings({ uid }: { uid: string }) {
       </div>
 
       {manageType && (
-        <LocationManager type={manageType} locations={getLocations(manageType)} onClose={() => setManageType(null)} />
+        <LocationManager type={manageType} locations={getLocations(manageType)} uid={uid} onClose={() => setManageType(null)} />
       )}
     </motion.div>
   );
