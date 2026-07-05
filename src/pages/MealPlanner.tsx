@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
-import { ShoppingBag, BookOpen, Check, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ShoppingBag, BookOpen, Check, X, ChevronLeft, ChevronRight, Loader2, Search, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useSettingsContext } from '../contexts/SettingsContext';
@@ -57,6 +57,8 @@ export default function MealPlanner({ uid }: { uid: string }) {
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [pickerCategory, setPickerCategory] = useState<string | null>(null);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerTag, setPickerTag] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [syncItems, setSyncItems] = useState<{ name: string; amount: string; selected: boolean; inStock: boolean; location: string }[]>([]);
@@ -244,7 +246,7 @@ export default function MealPlanner({ uid }: { uid: string }) {
           <div key={meal} className="bg-white p-3 rounded-xl shadow-sm border border-orange-50">
             <div className="flex justify-between items-center mb-2">
               <span className="text-[11px] uppercase font-bold tracking-widest text-gray-400">{MEAL_LABELS[meal]}</span>
-              <button onClick={() => setShowRecipePicker({ type: meal })}
+              <button onClick={() => { setPickerSearch(''); setPickerTag(''); setShowRecipePicker({ type: meal }); }}
                 className="text-orange-600 text-[8px] font-bold bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100 shadow-sm active:scale-95 transition-transform"
               >從食譜選擇</button>
             </div>
@@ -326,9 +328,45 @@ export default function MealPlanner({ uid }: { uid: string }) {
                 <h2 className="text-xl font-bold">選擇食譜</h2>
                 <button onClick={() => setShowRecipePicker(null)} className="p-2 hover:bg-gray-100 rounded-full"><X size={20} /></button>
               </div>
+              <div className="flex gap-2 mb-1">
+                <div className="relative w-1/2">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
+                  <input type="search" value={pickerSearch} onChange={e => setPickerSearch(e.target.value)}
+                    placeholder="搜尋..."
+                    className="w-full py-2 pl-9 pr-7 bg-gray-50 rounded-2xl border border-gray-100 text-xs outline-none focus:ring-1 focus:ring-orange-500 [&::-webkit-search-cancel-button]:hidden" />
+                  {pickerSearch && (
+                    <button onClick={() => setPickerSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500"><X size={14} /></button>
+                  )}
+                </div>
+                <div className="relative flex-1">
+                  <Tag size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
+                  <select value={pickerTag} onChange={e => setPickerTag(e.target.value)}
+                    className={cn(
+                      "w-full h-full py-2 pl-8 pr-3 bg-gray-50 rounded-2xl border border-gray-100 text-xs outline-none appearance-none focus:ring-1 focus:ring-orange-500",
+                      pickerTag ? "text-orange-600 font-bold" : "text-gray-400"
+                    )}
+                  >
+                    <option value="">全部標籤</option>
+                    {Array.from(new Set(recipes.flatMap(r => r.tags || []))).sort().map(tag => (
+                      <option key={tag} value={tag}>{tag}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <FilterPills items={recipeCategories} active={pickerCategory} onSelect={setPickerCategory} />
               <div className="grid grid-cols-3 gap-3 mt-4">
-                {recipes.filter(r => !pickerCategory || r.category === pickerCategory).map(recipe => {
+                {recipes.filter(r => {
+                  if (pickerCategory && r.category !== pickerCategory) return false;
+                  if (pickerTag && !(r.tags || []).includes(pickerTag)) return false;
+                  const kw = pickerSearch.trim().toLowerCase();
+                  if (!kw) return true;
+                  return (
+                    r.title.toLowerCase().includes(kw) ||
+                    (r.description || '').toLowerCase().includes(kw) ||
+                    (r.tags || []).some(t => t.toLowerCase().includes(kw)) ||
+                    r.ingredients.some(i => i.name.toLowerCase().includes(kw))
+                  );
+                }).map(recipe => {
                   const currentItems = getMealItems(showRecipePicker.type);
                   const isSelected = currentItems.some(i => i.recipeId === recipe.id);
                   return (
