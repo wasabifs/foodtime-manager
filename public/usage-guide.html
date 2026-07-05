@@ -21,6 +21,8 @@
     --recipe-soft:#FBE7FB;
     --menu:#F59E0B;
     --menu-soft:#FFF3DC;
+    --setting:#64748B;
+    --setting-soft:#EDF1F6;
   }
   *{box-sizing:border-box;}
   html{scroll-padding-top:64px;}
@@ -107,7 +109,7 @@
     margin:0 auto 56px;
     padding:0 24px;
     display:grid;
-    grid-template-columns:repeat(4,1fr);
+    grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
     gap:12px;
   }
   nav.toc a{
@@ -220,7 +222,29 @@
   #pantry{--accent:var(--pantry); --accent-soft:var(--pantry-soft);}
   #recipes{--accent:var(--recipe); --accent-soft:var(--recipe-soft);}
   #menu{--accent:var(--menu); --accent-soft:var(--menu-soft);}
+  #settings{--accent:var(--setting); --accent-soft:var(--setting-soft);}
   section.page .tag{background:var(--accent-soft);color:var(--accent);}
+
+  /* 圖片演示：截圖放在 public/guide/ 下；找不到圖檔時整個區塊自動隱藏 */
+  figure.shot{
+    margin:20px 0 6px;
+    background:var(--cream);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:14px;
+    text-align:center;
+  }
+  figure.shot img{
+    max-width:min(320px,100%);
+    border-radius:12px;
+    box-shadow:0 8px 24px -12px rgba(0,0,0,.25);
+    display:inline-block;
+  }
+  figure.shot figcaption{
+    margin-top:10px;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
 
   .flow{
     display:flex;
@@ -290,9 +314,57 @@
   <a href="#pantry"><span class="dot" style="background:var(--pantry-soft);color:var(--pantry)">🥦</span>食材庫存</a>
   <a href="#recipes"><span class="dot" style="background:var(--recipe-soft);color:var(--recipe)">📖</span>私房食譜</a>
   <a href="#menu"><span class="dot" style="background:var(--menu-soft);color:var(--menu)">🗓️</span>每日菜單</a>
+  <a href="#settings"><span class="dot" style="background:var(--setting-soft);color:var(--setting)">⚙️</span>設定</a>
 </nav>
 
 <main>
+
+  <section class="page" id="cycle" style="border-style:dashed;">
+    <span class="tag" style="background:var(--carrot-soft);color:var(--carrot)">四頁怎麼串在一起</span>
+
+    <svg viewBox="0 0 320 320" style="display:block;max-width:340px;width:100%;margin:12px auto 8px;" role="img" aria-label="買存煮排循環圖">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#b9b0a8"/>
+        </marker>
+      </defs>
+
+      <!-- 循環箭頭（順時針） -->
+      <g fill="none" stroke="#b9b0a8" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrow)">
+        <path d="M206,65.6 A105,105 0 0 1 254.4,114"/>
+        <path d="M254.4,206 A105,105 0 0 1 206,254.4"/>
+        <path d="M114,254.4 A105,105 0 0 1 65.6,206"/>
+        <path d="M65.6,114 A105,105 0 0 1 114,65.6"/>
+      </g>
+
+      <!-- 中心文字 -->
+      <text x="160" y="152" text-anchor="middle" font-size="14" font-weight="700" fill="#262220">從買到煮的</text>
+      <text x="160" y="172" text-anchor="middle" font-size="14" font-weight="700" fill="#262220">食材循環</text>
+
+      <!-- 買（上） -->
+      <circle cx="160" cy="55" r="40" fill="#E0F4FD"/>
+      <text x="160" y="65" text-anchor="middle" font-size="28" font-weight="700" fill="#0EA5E9">買</text>
+
+      <!-- 存（右） -->
+      <circle cx="265" cy="160" r="40" fill="#E3F6E8"/>
+      <text x="265" y="170" text-anchor="middle" font-size="28" font-weight="700" fill="#16A34A">存</text>
+
+      <!-- 煮（下） -->
+      <circle cx="160" cy="265" r="40" fill="#FBE7FB"/>
+      <text x="160" y="275" text-anchor="middle" font-size="28" font-weight="700" fill="#D946EF">煮</text>
+
+      <!-- 排（左） -->
+      <circle cx="55" cy="160" r="40" fill="#FFF3DC"/>
+      <text x="55" y="170" text-anchor="middle" font-size="28" font-weight="700" fill="#F59E0B">排</text>
+    </svg>
+
+    <div class="grid2" style="margin-top:18px;">
+      <div class="chip"><b>🛒 買 · 採購清單</b>勾選買到的東西，自動轉進食材庫存。</div>
+      <div class="chip"><b>🥦 存 · 食材庫存</b>過期提醒 + 提供 AI 食譜推薦的食材來源。</div>
+      <div class="chip"><b>📖 煮 · 私房食譜</b>存好的菜色，可手動排進每日菜單。</div>
+      <div class="chip"><b>🗓️ 排 · 每日菜單</b>比對庫存缺什麼，自動補回採購清單，循環重新開始。</div>
+    </div>
+  </section>
 
   <section class="page" id="shopping">
     <span class="tag">PAGE 1 · 採購清單</span>
@@ -315,12 +387,19 @@
     <p class="lede">記錄已經買回家、放在冰箱或櫥憃裡的食材，並用顏色提醒哪些快過期，避免囤了又忘記。</p>
 
     <ol class="steps">
-      <li><strong>新增食材</strong><span>按右上角「+」，填入食材名稱、數量、單位、分類、採購地點、儲存區域，以及購買日／到期日。購買日預設帶入今天，到期日依包裝或經驗自行填寫。</span></li>
-      <li><strong>依儲存區域分區瀏覽</strong><span>食材卡片會依儲存區域（例如冷藏、冷凍、常溫）分組顯示，也可用上方篩選依「地點」「分類」快速縮小範圍。</span></li>
+      <li><strong>新增食材</strong><span>按右上角「+」，填入食材名稱、數量（用左右「−」「+」按鈕調整，預設為 1）、單位、分類、採購地點、儲存區域，以及購買日／到期日。購買日預設帶入今天，到期日依包裝或經驗自行填寫。</span></li>
+      <li><strong>依儲存區域分區瀏覽</strong><span>食材卡片會依儲存區域（例如冷藏、冷凍、常溫）分組顯示，也可用上方篩選依「地點」「分類」快速縮小範圍。卡片右下角會顯示剩餘數量（例如 x2）。</span></li>
       <li><strong>看顏色就知道要不要先吃</strong><span>卡片底色代表新鮮度：白色（還很新鮮）→ 黃色（一週內到期）→ 橘色（3 天內到期）→ 紅色（今天到期）→ 灰色（已過期）。</span></li>
       <li><strong>吃完了打勾</strong><span>點卡片右上角的圓圈勾選即代表「食用完畢」，系統會問要不要把它加回採購清單，方便下次補貨同一樣東西。</span></li>
       <li><strong>編輯或刪除</strong><span>點卡片本身可開啟編輯視窗，調整任何欄位；視窗下方也能直接刪除整筆紀錄，或一鍵「加入採購清單」（會同時把這筆食材從庫存移除，等於標記成「要重買」）。</span></li>
     </ol>
+
+    <figure class="shot">
+      <img src="/guide/pantry-card.png" alt="食材卡片與剩餘數量示意" onerror="this.parentElement.style.display='none'">
+      <figcaption>食材卡片：底色代表新鮮度，右下角顯示剩餘數量</figcaption>
+    </figure>
+
+    <div class="tip"><b>小提醒：</b>只要有食材將在三天內到期，每次打開 App 都會先跳出「即將到期提醒」，列出這些食材與存放位置，提醒你優先用掉。</div>
 
     <div class="tip"><b>小提醒：</b>這裡的食材庫存，就是菜單頁「自動採購分析」比對庫存夠不夠的依據，也是私房食譜頁 AI 推薦食譜的食材來源。</div>
   </section>
@@ -331,13 +410,24 @@
     <p class="lede">把常做的料理寫成食譜存起來，方便排進每日菜單；也可以請 AI 根據目前快過期的食材推薦一道菜。</p>
 
     <ol class="steps">
-      <li><strong>手動新增食譜</strong><span>按「+」填入食譜名稱、分類、照片（可上傳或貼網址）、簡介，再逐筆加入「食材清單」（品名＋份量）與「步驟說明」。</span></li>
-      <li><strong>瀏覽與查看</strong><span>食譜以卡片形式呈現，點卡片可看完整內容：簡介、所需食材、步驟，下方有「編輯」「刪除」按鈕。</span></li>
-      <li><strong>AI 推薦食譜</strong><span>按上方「AI 推薦」按鈕，系統會抓出你食材庫存中最快過期的幾樣，請 AI 設計一道用得到這些食材的簡單食譜，並顯示名稱、簡介、食材與步驟。</span></li>
-      <li><strong>把 AI 結果存成自己的食譜</strong><span>在 AI 推薦結果視窗按「儲存」，就會把這份建議直接存進私房食譜，之後可在菜單頁挑選使用。</span></li>
+      <li><strong>手動新增食譜</strong><span>按「+」填入食譜名稱、分類、標籤、照片、簡介，再逐筆加入「食材清單」（品名＋份量）與「步驟說明」。</span></li>
+      <li><strong>照片剪裁</strong><span>上傳照片時會先進入剪裁步驟：拖曳調整位置、用滑桿縮放，裁成統一的 4:3 比例後才上傳，卡片顯示會更整齊，檔案也更小。</span></li>
+      <li><strong>標籤</strong><span>在標籤欄輸入文字後按 Enter、逗號或「加入」即可建立標籤（例如「快速」「便當菜」「宵夜」）；欄位下方會列出其他食譜用過的現有標籤，點一下直接套用，不用重打。</span></li>
+      <li><strong>搜尋與篩選</strong><span>頁面上方有搜尋框與標籤下拉選單：搜尋框可比對食譜名稱、簡介、標籤與食材名稱；下拉選單可鎖定單一標籤，兩者也能和分類篩選同時使用。</span></li>
+      <li><strong>剩菜組合（AI 推薦）</strong><span>按上方「剩菜組合」按鈕，會列出食材庫存清單（快過期的排前面，並顯示數量與到期日），勾選想用掉的食材後按「生成菜色」，AI 就會設計一道盡量把這些食材用完的簡單食譜。</span></li>
+      <li><strong>把 AI 結果存成自己的食譜</strong><span>在 AI 推薦結果視窗按「加入食譜」，就會把這份建議直接存進私房食譜，之後可在菜單頁挑選使用。</span></li>
     </ol>
 
-    <div class="tip"><b>小提醒：</b>AI 推薦食譜需要食材庫存裡至少有東西才能使用；如果食材庫存是空的，按鈕會無法點擊。</div>
+    <figure class="shot">
+      <img src="/guide/recipes-picker.png" alt="剩菜組合食材勾選畫面" onerror="this.parentElement.style.display='none'">
+      <figcaption>剩菜組合：勾選要用掉的食材，交給 AI 生成菜色</figcaption>
+    </figure>
+    <figure class="shot">
+      <img src="/guide/recipes-search.png" alt="食譜搜尋與標籤篩選" onerror="this.parentElement.style.display='none'">
+      <figcaption>搜尋框＋標籤下拉選單，快速找到想做的菜</figcaption>
+    </figure>
+
+    <div class="tip"><b>小提醒：</b>剩菜組合需要食材庫存裡至少有東西才能使用；如果食材庫存是空的，按鈕會無法點擊。</div>
   </section>
 
   <section class="page" id="menu">
@@ -363,15 +453,25 @@
     <div class="tip"><b>小提醒：</b>「同步採購清單」只統計排在週菜單中、且來自私房食譜的菜色，沒有指定食譜的隨手紀錄不會被納入分析。</div>
   </section>
 
-  <section class="page" id="cycle" style="border-style:dashed;">
-    <span class="tag" style="background:var(--carrot-soft);color:var(--carrot)">四頁怎麼串在一起</span>
-    <h2 class="display" style="font-size:22px;">一個循環：買 → 存 → 煮 → 排</h2>
-    <div class="grid2" style="margin-top:18px;">
-      <div class="chip"><b>🛒 採購清單</b>勾選買到的東西，自動轉進食材庫存。</div>
-      <div class="chip"><b>🥦 食材庫存</b>過期提醒 + 提供 AI 食譜推薦的食材來源。</div>
-      <div class="chip"><b>📖 私房食譜</b>存好的菜色，可手動排進每日菜單。</div>
-      <div class="chip"><b>🗓️ 每日菜單</b>比對庫存缺什麼，自動補回採購清單，循環重新開始。</div>
-    </div>
+  <section class="page" id="settings">
+    <span class="tag">PAGE 5 · 設定</span>
+    <h2>分類標籤都在這裡管理</h2>
+    <p class="lede">採購地點、食材分類、儲存地點、食譜分類四種標籤，都可以在設定頁自由新增、改名、刪除與排序，各頁的下拉選單與篩選會即時跟著更新。</p>
+
+    <ol class="steps">
+      <li><strong>進入管理視窗</strong><span>點「採購地點管理」「食材分類管理」「儲存地點管理」「食譜分類管理」任一項，開啟該分類的清單。</span></li>
+      <li><strong>新增</strong><span>在最上方輸入框打上名稱，按「+」或 Enter 即可加入（重複名稱不會加入）。</span></li>
+      <li><strong>改名</strong><span>點項目右側的鉛筆圖示直接修改名稱。改名後，所有已經使用舊名稱的資料（採購項目、食材、食譜）都會自動改用新名稱，不用一筆一筆調整。</span></li>
+      <li><strong>刪除</strong><span>點右側的垃圾桶圖示並確認後刪除。原本使用該分類的資料會自動改為「未分類」，資料本身不會消失。</span></li>
+      <li><strong>排序</strong><span>按住項目左側的把手上下拖曳即可調整順序，各頁篩選列與下拉選單會依照這裡的順序顯示。</span></li>
+    </ol>
+
+    <figure class="shot">
+      <img src="/guide/settings-manager.png" alt="分類管理視窗" onerror="this.parentElement.style.display='none'">
+      <figcaption>每個項目右側都有編輯與刪除按鈕，左側把手可拖曳排序</figcaption>
+    </figure>
+
+    <div class="tip"><b>小提醒：</b>改名與刪除會批次更新既有資料，項目較多時標題旁會出現轉圈圖示，跑完前請不要關閉視窗。</div>
   </section>
 
 </main>
