@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { BookOpen, Plus, Sparkles, X, Camera, AlertCircle, Loader2, Search, Tag, CheckCircle2, Circle } from 'lucide-react';
@@ -95,9 +95,134 @@ function RecipeDetail({ recipe, onClose, onDelete, onEdit }: {
   );
 }
 
+/* ── Image Crop Modal (4:3, drag to pan, slider to zoom) ── */
+function ImageCropModal({ file, onCancel, onCropped }: {
+  file: File; onCancel: () => void; onCropped: (cropped: File) => void;
+}) {
+  const [url] = useState(() => URL.createObjectURL(file));
+  const containerRef = useRef<HTMLDivElement>(null);
+  const imgElRef = useRef<HTMLImageElement>(null);
+  const [natural, setNatural] = useState({ w: 0, h: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<{ x: number; y: number } | null>(null);
+  const [processing, setProcessing] = useState(false);
+
+  useEffect(() => () => URL.revokeObjectURL(url), [url]);
+
+  const getScale = (z: number) => {
+    const el = containerRef.current;
+    if (!el || !natural.w) return 1;
+    return Math.max(el.clientWidth / natural.w, el.clientHeight / natural.h) * z;
+  };
+
+  const clampPos = (p: { x: number; y: number }, z: number) => {
+    const el = containerRef.current;
+    if (!el || !natural.w) return p;
+    const scale = getScale(z);
+    const maxX = Math.max(0, (natural.w * scale - el.clientWidth) / 2);
+    const maxY = Math.max(0, (natural.h * scale - el.clientHeight) / 2);
+    return { x: Math.min(maxX, Math.max(-maxX, p.x)), y: Math.min(maxY, Math.max(-maxY, p.y)) };
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    setPos(clampPos({ x: e.clientX - dragRef.current.x, y: e.clientY - dragRef.current.y }, zoom));
+  };
+  const onPointerUp = () => { dragRef.current = null; };
+
+  const handleZoom = (z: number) => {
+    setZoom(z);
+    setPos(p => clampPos(p, z));
+  };
+
+  const confirmCrop = () => {
+    const el = containerRef.current;
+    const img = imgElRef.current;
+    if (!el || !img || !natural.w) return;
+    setProcessing(true);
+    const scale = getScale(zoom);
+    const srcW = el.clientWidth / scale;
+    const srcH = el.clientHeight / scale;
+    const srcX = natural.w / 2 - pos.x / scale - srcW / 2;
+    const srcY = natural.h / 2 - pos.y / scale - srcH / 2;
+
+    const canvas = document.createElement('canvas');
+    const outW = Math.min(1200, Math.round(srcW));
+    canvas.width = outW;
+    canvas.height = Math.round(outW * 3 / 4);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { setProcessing(false); return; }
+    ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(blob => {
+      setProcessing(false);
+      if (!blob) return;
+      const name = file.name.replace(/\.[^.]+$/, '') + '_cropped.jpg';
+      onCropped(new File([blob], name, { type: 'image/jpeg' }));
+    }, 'image/jpeg', 0.85);
+  };
+
+  const scale = getScale(zoom);
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+        className="bg-white w-full max-w-md rounded-[32px] p-6 shadow-2xl"
+      >
+        <h2 className="text-lg font-bold text-gray-900 mb-1">剪裁照片</h2>
+        <p className="text-xs text-gray-400 mb-4">拖曳調整位置，滑桿調整縮放</p>
+
+        <div ref={containerRef}
+          onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
+          className="relative w-full aspect-[4/3] bg-gray-900 rounded-2xl overflow-hidden touch-none cursor-move select-none"
+        >
+          {natural.w > 0 && (
+            <img ref={imgElRef} src={url} draggable={false}
+              onLoad={() => {}}
+              className="absolute left-1/2 top-1/2 max-w-none pointer-events-none"
+              style={{
+                width: natural.w * scale,
+                height: natural.h * scale,
+                transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
+              }}
+            />
+          )}
+          {/* hidden loader to read natural size */}
+          {natural.w === 0 && (
+            <img src={url} className="absolute inset-0 w-full h-full object-contain opacity-0"
+              onLoad={e => setNatural({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })} />
+          )}
+          <div className="absolute inset-0 border-2 border-white/40 rounded-2xl pointer-events-none" />
+        </div>
+
+        <div className="flex items-center gap-3 mt-4">
+          <span className="text-[10px] font-bold text-gray-400 shrink-0">縮放</span>
+          <input type="range" min={1} max={3} step={0.01} value={zoom}
+            onChange={e => handleZoom(Number(e.target.value))}
+            className="flex-1 accent-orange-600" />
+        </div>
+
+        <div className="flex gap-3 mt-5">
+          <button type="button" onClick={onCancel} className="flex-1 py-3 text-gray-500 text-sm font-medium">取消</button>
+          <button type="button" onClick={confirmCrop} disabled={processing || !natural.w}
+            className="flex-1 py-3 bg-orange-600 text-white rounded-full text-sm font-bold shadow-lg active:scale-95 transition-transform disabled:opacity-50"
+          >
+            {processing ? '處理中...' : '完成剪裁'}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 /* ── Recipe Form with fixed upload ── */
-function RecipeForm({ uid, recipe, categories, onClose }: {
-  uid: string; recipe?: Recipe; categories: string[]; onClose: () => void;
+function RecipeForm({ uid, recipe, categories, allTags, onClose }: {
+  uid: string; recipe?: Recipe; categories: string[]; allTags: string[]; onClose: () => void;
 }) {
   const [title, setTitle] = useState(recipe?.title || '');
   const [desc, setDesc] = useState(recipe?.description || '');
@@ -108,19 +233,23 @@ function RecipeForm({ uid, recipe, categories, onClose }: {
   const [ingredients, setIngredients] = useState(recipe?.ingredients || [{ name: '', amount: '' }]);
   const [steps, setSteps] = useState(recipe?.steps || ['']);
   const [saving, setSaving] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
   const { upload, isUploading, uploadError, progress, clearError } = useImageUpload(uid);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     clearError();
-
-    const url = await upload(file);
-    if (url) setImageUrl(url);
-
+    setCropFile(file);
     // Reset the input so the same file can be selected again
     if (e.target) e.target.value = '';
+  };
+
+  const handleCropped = async (cropped: File) => {
+    setCropFile(null);
+    const url = await upload(cropped);
+    if (url) setImageUrl(url);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -199,6 +328,20 @@ function RecipeForm({ uid, recipe, categories, onClose }: {
                   <button type="button" onClick={() => setTags(tags.filter(t => t !== tag))} className="text-orange-400 hover:text-orange-700"><X size={10} /></button>
                 </span>
               ))}
+            </div>
+          )}
+          {allTags.filter(t => !tags.includes(t)).length > 0 && (
+            <div className="mt-2">
+              <p className="text-[9px] text-gray-300 font-bold mb-1">現有標籤（點擊加入）</p>
+              <div className="flex flex-wrap gap-1.5">
+                {allTags.filter(t => !tags.includes(t)).map(tag => (
+                  <button key={tag} type="button" onClick={() => setTags([...tags, tag])}
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-500 rounded-full text-[10px] font-bold border border-gray-200 active:bg-orange-50 active:text-orange-600 active:border-orange-100 transition-colors"
+                  >
+                    <Plus size={9} />{tag}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -294,6 +437,12 @@ function RecipeForm({ uid, recipe, categories, onClose }: {
           {saving ? '儲存中...' : '儲存'}
         </button>
       </div>
+
+      <AnimatePresence>
+        {cropFile && (
+          <ImageCropModal file={cropFile} onCancel={() => setCropFile(null)} onCropped={handleCropped} />
+        )}
+      </AnimatePresence>
     </form>
   );
 }
@@ -313,6 +462,7 @@ export default function Recipes({ uid }: { uid: string }) {
   const [showAiModal, setShowAiModal] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTag, setSelectedTag] = useState('');
   const [showPicker, setShowPicker] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -402,9 +552,12 @@ export default function Recipes({ uid }: { uid: string }) {
     }
   };
 
+  const allTags = Array.from(new Set(recipes.flatMap(r => r.tags || []))).sort();
+
   const keyword = searchTerm.trim().toLowerCase();
   const filteredRecipes = recipes.filter(r => {
     if (activeCategory && r.category !== activeCategory) return false;
+    if (selectedTag && !(r.tags || []).includes(selectedTag)) return false;
     if (!keyword) return true;
     return (
       r.title.toLowerCase().includes(keyword) ||
@@ -431,14 +584,28 @@ export default function Recipes({ uid }: { uid: string }) {
             </button>
           }
         />
-        <div className="mt-2 relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
-          <input type="search" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-            placeholder="搜尋食譜名稱、標籤、食材..."
-            className="w-full py-2 pl-9 pr-8 bg-white rounded-2xl shadow-sm border border-gray-100 text-xs outline-none focus:ring-1 focus:ring-orange-500 [&::-webkit-search-cancel-button]:hidden" />
-          {searchTerm && (
-            <button onClick={() => setSearchTerm('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500"><X size={14} /></button>
-          )}
+        <div className="mt-2 flex gap-2">
+          <div className="relative w-1/2">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
+            <input type="search" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+              placeholder="搜尋..."
+              className="w-full py-2 pl-9 pr-7 bg-white rounded-2xl shadow-sm border border-gray-100 text-xs outline-none focus:ring-1 focus:ring-orange-500 [&::-webkit-search-cancel-button]:hidden" />
+            {searchTerm && (
+              <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500"><X size={14} /></button>
+            )}
+          </div>
+          <div className="relative flex-1">
+            <Tag size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
+            <select value={selectedTag} onChange={e => setSelectedTag(e.target.value)}
+              className={cn(
+                "w-full h-full py-2 pl-8 pr-3 bg-white rounded-2xl shadow-sm border border-gray-100 text-xs outline-none appearance-none focus:ring-1 focus:ring-orange-500",
+                selectedTag ? "text-orange-600 font-bold" : "text-gray-400"
+              )}
+            >
+              <option value="">全部標籤</option>
+              {allTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
+            </select>
+          </div>
         </div>
         <FilterPills items={recipeCategories} active={activeCategory} onSelect={setActiveCategory} />
       </div>
@@ -463,7 +630,7 @@ export default function Recipes({ uid }: { uid: string }) {
         </div>
         {filteredRecipes.length === 0 && (
           <div className="text-center py-16 text-gray-300 text-sm">
-            {keyword || activeCategory ? '找不到符合的食譜' : '還沒有食譜，點右上角新增吧'}
+            {keyword || activeCategory || selectedTag ? '找不到符合的食譜' : '還沒有食譜，點右上角新增吧'}
           </div>
         )}
       </div>
@@ -617,7 +784,7 @@ export default function Recipes({ uid }: { uid: string }) {
             className="bg-white w-full max-w-md rounded-[32px] p-8 max-h-[90vh] overflow-y-auto"
           >
             <h2 className="text-2xl font-bold mb-6">{editingRecipe ? '編輯食譜' : '新增食譜'}</h2>
-            <RecipeForm uid={uid} recipe={editingRecipe || undefined} categories={recipeCategories}
+            <RecipeForm uid={uid} recipe={editingRecipe || undefined} categories={recipeCategories} allTags={allTags}
               onClose={() => { setShowAdd(false); setEditingRecipe(null); }}
             />
           </motion.div>
