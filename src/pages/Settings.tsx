@@ -42,7 +42,7 @@ export default function Settings({ uid }: { uid: string }) {
         <SectionHeader title="設定" />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 pb-32">
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 pb-8">
         <div className="space-y-3">
           <SettingItem icon={Store} label="採購地點管理" onClick={() => setManageType('purchase')} />
           <SettingItem icon={Tag} label="食材分類管理" onClick={() => setManageType('ingredient')} />
