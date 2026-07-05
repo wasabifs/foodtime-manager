@@ -1,6 +1,8 @@
-import { useState, useRef } from 'react';
-import { Plus, X, Check, GripVertical } from 'lucide-react';
-import { motion, Reorder } from 'motion/react';
+import { useState } from 'react';
+import { Plus, X, Check, GripVertical, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { motion, Reorder, AnimatePresence } from 'motion/react';
+import { collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { db } from '../firebase';
 import { cn } from '../lib/utils';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import type { LocationType } from '../types';
@@ -134,16 +136,37 @@ export function LoadingSkeleton() {
 }
 
 /* ── Location Manager Modal ── */
-export function LocationManager({ type, locations, onClose }: {
-  type: LocationType; locations: string[]; onClose: () => void;
+// 各分類型別對應到需要連動更新的 Firestore 集合與欄位
+const CASCADE_TARGETS: Record<LocationType, { col: string; field: string }[]> = {
+  purchase: [
+    { col: 'shoppingList', field: 'location' },
+    { col: 'ingredients', field: 'purchaseLocation' },
+  ],
+  ingredient: [{ col: 'ingredients', field: 'category' }],
+  storage: [{ col: 'ingredients', field: 'storageLocation' }],
+  recipe: [{ col: 'recipes', field: 'category' }],
+};
+
+export function LocationManager({ type, locations, uid, onClose }: {
+  type: LocationType; locations: string[]; uid: string; onClose: () => void;
 }) {
   const { updateLocations } = useSettingsContext();
   const [newLoc, setNewLoc] = useState('');
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editVal, setEditVal] = useState('');
-  const [longPressIdx, setLongPressIdx] = useState<number | null>(null);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [confirmDeleteIdx, setConfirmDeleteIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // 將既有資料中使用 oldName 的欄位批次改為 newName
+  const cascadeUpdate = async (oldName: string, newName: string) => {
+    for (const { col, field } of CASCADE_TARGETS[type]) {
+      const snap = await getDocs(query(collection(db, col), where('uid', '==', uid), where(field, '==', oldName)));
+      if (snap.empty) continue;
+      const batch = writeBatch(db);
+      snap.docs.forEach(d => batch.update(d.ref, { [field]: newName }));
+      await batch.commit();
+    }
+  };
 
   const saveLocations = async (newLocations: string[]) => {
     setSaving(true);
@@ -162,8 +185,18 @@ export function LocationManager({ type, locations, onClose }: {
     setNewLoc('');
   };
 
-  const removeLocation = (idx: number) => {
-    saveLocations(locations.filter((_, i) => i !== idx));
+  const removeLocation = async (idx: number) => {
+    const name = locations[idx];
+    setConfirmDeleteIdx(null);
+    setSaving(true);
+    try {
+      await cascadeUpdate(name, '未分類');
+      await updateLocations(type, locations.filter((_, i) => i !== idx));
+    } catch (err) {
+      console.error('Failed to delete location:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const startEdit = (idx: number) => {
@@ -171,20 +204,23 @@ export function LocationManager({ type, locations, onClose }: {
     setEditVal(locations[idx]);
   };
 
-  const saveEdit = () => {
-    if (!editVal.trim()) return;
-    const updated = [...locations];
-    updated[editingIdx!] = editVal.trim();
-    saveLocations(updated);
+  const saveEdit = async () => {
+    const newName = editVal.trim();
+    const oldName = locations[editingIdx!];
+    if (!newName || newName === oldName) { setEditingIdx(null); return; }
+    if (locations.includes(newName)) return; // 重複名稱不允許
     setEditingIdx(null);
-  };
-
-  const startLongPress = (idx: number) => {
-    longPressTimer.current = setTimeout(() => setLongPressIdx(idx), 600);
-  };
-
-  const endLongPress = () => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    setSaving(true);
+    try {
+      const updated = [...locations];
+      updated[locations.indexOf(oldName)] = newName;
+      await updateLocations(type, updated);
+      await cascadeUpdate(oldName, newName);
+    } catch (err) {
+      console.error('Failed to rename location:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -193,7 +229,10 @@ export function LocationManager({ type, locations, onClose }: {
         className="bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
       >
         <div className="sticky top-0 bg-white z-10 px-4 pt-6 pb-2 border-b border-gray-100 flex justify-between items-center">
-          <h2 className="text-lg font-bold text-gray-900">{LOCATION_TYPE_LABELS[type]}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-900">{LOCATION_TYPE_LABELS[type]}</h2>
+            {saving && <Loader2 size={14} className="animate-spin text-orange-600" />}
+          </div>
           <button onClick={onClose} className="p-2 bg-gray-50 rounded-full text-gray-400 hover:text-gray-600 transition-colors">
             <X size={18} />
           </button>
@@ -218,44 +257,62 @@ export function LocationManager({ type, locations, onClose }: {
             {locations.map((loc, idx) => (
               <Reorder.Item
                 key={loc} value={loc}
-                onMouseDown={() => startLongPress(idx)}
-                onMouseUp={endLongPress}
-                onMouseLeave={endLongPress}
-                onTouchStart={() => startLongPress(idx)}
-                onTouchEnd={endLongPress}
-                className="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100 group cursor-grab active:cursor-grabbing relative overflow-hidden"
+                className="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100 cursor-grab active:cursor-grabbing"
               >
-                <div className="flex items-center gap-2 flex-1">
-                  <GripVertical size={14} className="text-gray-300" />
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <GripVertical size={14} className="text-gray-300 shrink-0" />
                   {editingIdx === idx ? (
                     <div className="flex-1 flex gap-2">
                       <input autoFocus value={editVal} onChange={e => setEditVal(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && saveEdit()}
-                        className="flex-1 bg-white border border-orange-200 rounded-lg px-2 py-1 text-xs outline-none"
+                        className="flex-1 min-w-0 bg-white border border-orange-200 rounded-lg px-2 py-1 text-xs outline-none"
                       />
-                      <button onClick={saveEdit} className="p-1 bg-orange-600 text-white rounded-lg shadow-sm">
+                      <button onClick={saveEdit} className="p-1 bg-orange-600 text-white rounded-lg shadow-sm shrink-0">
                         <Check size={14} />
+                      </button>
+                      <button onClick={() => setEditingIdx(null)} className="p-1 bg-gray-200 text-gray-500 rounded-lg shrink-0">
+                        <X size={14} />
                       </button>
                     </div>
                   ) : (
-                    <span className="text-xs font-medium text-gray-700">{loc}</span>
+                    <span className="text-xs font-medium text-gray-700 truncate">{loc}</span>
                   )}
                 </div>
 
-                {longPressIdx === idx && editingIdx !== idx && (
-                  <div className="absolute inset-0 bg-white/90 backdrop-blur-[1px] rounded-xl flex items-center justify-center z-10 gap-2">
-                    <button onClick={(e) => { e.stopPropagation(); startEdit(idx); setLongPressIdx(null); }}
-                      className="bg-orange-600 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-lg">編輯</button>
-                    <button onClick={(e) => { e.stopPropagation(); removeLocation(idx); setLongPressIdx(null); }}
-                      className="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-lg">刪除</button>
-                    <button onClick={(e) => { e.stopPropagation(); setLongPressIdx(null); }}
-                      className="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-[10px] font-bold">取消</button>
+                {editingIdx !== idx && (
+                  <div className="flex items-center gap-0.5 shrink-0 ml-2">
+                    <button disabled={saving}
+                      onClick={(e) => { e.stopPropagation(); startEdit(idx); }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      className="p-2 text-gray-400 hover:text-orange-600 active:text-orange-600 transition-colors disabled:opacity-40"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button disabled={saving}
+                      onClick={(e) => { e.stopPropagation(); setConfirmDeleteIdx(idx); }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      className="p-2 text-gray-400 hover:text-red-500 active:text-red-500 transition-colors disabled:opacity-40"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 )}
               </Reorder.Item>
             ))}
           </Reorder.Group>
         </div>
+
+        <AnimatePresence>
+          {confirmDeleteIdx !== null && (
+            <ConfirmModal
+              title={`刪除「${locations[confirmDeleteIdx]}」？`}
+              message="使用此分類的既有資料會改為「未分類」。" danger
+              confirmLabel="刪除" cancelLabel="取消"
+              onConfirm={() => removeLocation(confirmDeleteIdx)}
+              onCancel={() => setConfirmDeleteIdx(null)}
+            />
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );
