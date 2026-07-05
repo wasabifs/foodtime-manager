@@ -309,6 +309,7 @@ export default function Recipes({ uid }: { uid: string }) {
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [aiResult, setAiResult] = useState<Recipe | null>(null);
   const [showAiModal, setShowAiModal] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -363,8 +364,14 @@ export default function Recipes({ uid }: { uid: string }) {
     if (selected.length === 0) return;
     setShowPicker(false);
     setAiLoading(true);
+    setAiError(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        setAiError('尚未設定 Gemini API Key。請到 Vercel 專案的 Settings → Environment Variables 加入 GEMINI_API_KEY 後重新部署。');
+        return;
+      }
+      const ai = new GoogleGenAI({ apiKey });
       const names = selected.map(i => `${i.name}（${i.amount}${i.unit}）`).join('、');
 
       const response = await ai.models.generateContent({
@@ -390,6 +397,8 @@ export default function Recipes({ uid }: { uid: string }) {
       setShowAiModal(true);
     } catch (error) {
       console.error('AI recipe generation failed:', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      setAiError(`生成失敗：${msg}`);
     } finally {
       setAiLoading(false);
     }
@@ -520,6 +529,40 @@ export default function Recipes({ uid }: { uid: string }) {
                   {selectedIds.size === 0 ? '請先勾選食材' : `用這 ${selectedIds.size} 樣食材生成菜色`}
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* AI Loading Overlay */}
+      <AnimatePresence>
+        {aiLoading && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-[32px] px-10 py-8 shadow-2xl flex flex-col items-center gap-3"
+            >
+              <Loader2 size={32} className="animate-spin text-orange-600" />
+              <p className="text-sm font-bold text-gray-700">AI 正在思考菜色...</p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* AI Error Modal */}
+      <AnimatePresence>
+        {aiError && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-sm rounded-[32px] p-6 shadow-2xl text-center"
+            >
+              <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                <AlertCircle className="text-red-500" size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">無法生成菜色</h3>
+              <p className="text-xs text-gray-500 leading-relaxed break-all">{aiError}</p>
+              <button onClick={() => setAiError(null)}
+                className="w-full mt-5 py-3 bg-orange-600 text-white rounded-full text-sm font-bold shadow-lg active:scale-95 transition-transform"
+              >知道了</button>
             </motion.div>
           </div>
         )}
