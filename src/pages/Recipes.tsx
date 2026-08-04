@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { BookOpen, Plus, Sparkles, X, Camera, AlertCircle, Loader2, Search, Tag, CheckCircle2, Circle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -467,9 +467,11 @@ export default function Recipes({ uid }: { uid: string }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const qR = query(collection(db, 'recipes'), where('uid', '==', uid), orderBy('createdAt', 'desc'));
+    const qR = query(collection(db, 'recipes'), where('uid', '==', uid));
     const unsubR = onSnapshot(qR, (snapshot) => {
-      setRecipes(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Recipe)));
+      const all = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Recipe));
+      all.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      setRecipes(all);
       setLoading(false);
     }, () => setLoading(false));
 
