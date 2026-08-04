@@ -25,9 +25,10 @@ export default function Inventory({ uid, inventoryAction, setInventoryAction }: 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, 'ingredients'), where('uid', '==', uid), where('isConsumed', '!=', true));
+    const q = query(collection(db, 'ingredients'), where('uid', '==', uid));
     const unsub = onSnapshot(q, (snapshot) => {
-      setIngredients(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Ingredient)));
+      const all = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Ingredient));
+      setIngredients(all.filter(ing => !ing.isConsumed));
       setLoading(false);
     }, () => setLoading(false));
     return () => unsub();
