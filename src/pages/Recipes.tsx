@@ -473,9 +473,10 @@ export default function Recipes({ uid }: { uid: string }) {
       setLoading(false);
     }, () => setLoading(false));
 
-    const qI = query(collection(db, 'ingredients'), where('uid', '==', uid), where('isConsumed', '!=', true));
+    const qI = query(collection(db, 'ingredients'), where('uid', '==', uid));
     const unsubI = onSnapshot(qI, (snapshot) => {
-      setIngredients(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Ingredient)));
+      const all = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Ingredient));
+      setIngredients(all.filter(ing => !ing.isConsumed));
     });
 
     return () => { unsubR(); unsubI(); };
