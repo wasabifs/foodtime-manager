@@ -447,12 +447,15 @@ function RecipeForm({ uid, recipe, categories, allTags, onClose }: {
   );
 }
 
+// 只要這次 App 開啟期間成功讀取過一次，切分頁回來就不再顯示 loading skeleton
+let hasLoadedRecipesOnce = false;
+
 /* ── Main Recipes Page ── */
 export default function Recipes({ uid }: { uid: string }) {
   const { recipeCategories } = useSettingsContext();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasLoadedRecipesOnce);
   const [showAdd, setShowAdd] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
@@ -472,6 +475,7 @@ export default function Recipes({ uid }: { uid: string }) {
       const all = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Recipe));
       all.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
       setRecipes(all);
+      hasLoadedRecipesOnce = true;
       setLoading(false);
     }, () => setLoading(false));
 
