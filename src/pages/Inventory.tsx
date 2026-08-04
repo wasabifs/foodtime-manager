@@ -9,6 +9,9 @@ import { SectionHeader, FilterPills, ConfirmModal, LoadingSkeleton } from '../co
 import type { Ingredient, InventoryAction } from '../types';
 import { parseISO } from 'date-fns';
 
+// 只要這次 App 開啟期間成功讀取過一次，切分頁回來就不再顯示 loading skeleton
+let hasLoadedInventoryOnce = false;
+
 export default function Inventory({ uid, inventoryAction, setInventoryAction }: {
   uid: string;
   inventoryAction: InventoryAction | null;
@@ -16,7 +19,7 @@ export default function Inventory({ uid, inventoryAction, setInventoryAction }: 
 }) {
   const { storageLocations, ingredientCategories, purchaseLocations } = useSettingsContext();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasLoadedInventoryOnce);
   const [showAdd, setShowAdd] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -29,6 +32,7 @@ export default function Inventory({ uid, inventoryAction, setInventoryAction }: 
     const unsub = onSnapshot(q, (snapshot) => {
       const all = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Ingredient));
       setIngredients(all.filter(ing => !ing.isConsumed));
+      hasLoadedInventoryOnce = true;
       setLoading(false);
     }, () => setLoading(false));
     return () => unsub();
