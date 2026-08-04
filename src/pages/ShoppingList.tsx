@@ -8,6 +8,9 @@ import { useSettingsContext } from '../contexts/SettingsContext';
 import { SectionHeader, FilterPills, ConfirmModal, LoadingSkeleton } from '../components/ui';
 import type { ShoppingItem, InventoryAction, TabType } from '../types';
 
+// 只要這次 App 開啟期間成功讀取過一次，切分頁回來就不再顯示 loading skeleton
+let hasLoadedShoppingListOnce = false;
+
 export default function ShoppingList({ uid, setInventoryAction, setActiveTab }: {
   uid: string;
   setInventoryAction: (action: InventoryAction | null) => void;
@@ -15,7 +18,7 @@ export default function ShoppingList({ uid, setInventoryAction, setActiveTab }: 
 }) {
   const { purchaseLocations } = useSettingsContext();
   const [items, setItems] = useState<ShoppingItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasLoadedShoppingListOnce);
   const [newItem, setNewItem] = useState('');
   const [newLocation, setNewLocation] = useState('');
   const [smartPrompt, setSmartPrompt] = useState<ShoppingItem | null>(null);
@@ -30,6 +33,7 @@ export default function ShoppingList({ uid, setInventoryAction, setActiveTab }: 
     const q = query(collection(db, 'shoppingList'), where('uid', '==', uid));
     const unsub = onSnapshot(q, (snapshot) => {
       setItems(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ShoppingItem)));
+      hasLoadedShoppingListOnce = true;
       setLoading(false);
     }, () => setLoading(false));
     return () => unsub();
