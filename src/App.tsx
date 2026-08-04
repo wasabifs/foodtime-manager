@@ -41,9 +41,9 @@ export default function App() {
     if (!loading && user) {
       getDocFromServer(doc(db, 'test', 'connection')).catch(() => {});
 
-      const q = query(collection(db, 'ingredients'), where('uid', '==', user.uid), where('isConsumed', '!=', true));
+      const q = query(collection(db, 'ingredients'), where('uid', '==', user.uid));
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        const ings = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Ingredient));
+        const ings = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Ingredient)).filter(ing => !ing.isConsumed);
         const soon = ings.filter(ing => {
           if (!ing.expiryDate) return false;
           const expiry = parseISO(ing.expiryDate);
