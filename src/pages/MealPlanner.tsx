@@ -45,13 +45,16 @@ function MealInput({ onSave, recipes, onSelectRecipe }: {
   );
 }
 
+// 只要這次 App 開啟期間成功讀取過一次，切分頁回來就不再顯示 loading skeleton
+let hasLoadedMealPlannerOnce = false;
+
 /* ── Main MealPlanner Page ── */
 export default function MealPlanner({ uid }: { uid: string }) {
   const { recipeCategories, purchaseLocations } = useSettingsContext();
   const [plans, setPlans] = useState<MealPlan[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [inventory, setInventory] = useState<Ingredient[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasLoadedMealPlannerOnce);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [showRecipePicker, setShowRecipePicker] = useState<{ type: MealType } | null>(null);
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
@@ -67,6 +70,7 @@ export default function MealPlanner({ uid }: { uid: string }) {
     const qP = query(collection(db, 'mealPlans'), where('uid', '==', uid));
     const unsubP = onSnapshot(qP, (snapshot) => {
       setPlans(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as MealPlan)));
+      hasLoadedMealPlannerOnce = true;
       setLoading(false);
     }, () => setLoading(false));
 
